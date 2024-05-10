@@ -11,6 +11,7 @@ app.use(
     cors({
       origin: [
         "http://localhost:5173",
+        "http://localhost:5174",
       ],
       credentials: true,
     })
@@ -32,6 +33,15 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+
+
+    const assignmentCollection = client.db('assignmentDB').collection('assignments');
+        app.post('/addAssignment', async (req, res) => {
+            const assignment = req.body;
+            console.log(assignment);
+            const result = await assignmentCollection.insertOne(assignment);
+            res.send(result);
+        })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
