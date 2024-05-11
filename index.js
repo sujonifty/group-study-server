@@ -44,6 +44,13 @@ async function run() {
             const result = await assignmentCollection.insertOne(assignment);
             res.send(result);
         })
+        //Assignments: get assignments data from database
+        app.get('/assignments', async (req, res) => {
+            const cursor = assignmentCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
         //for assignment submission
         app.post('/submittedAssignment', async (req, res) => {
             const submission = req.body;
@@ -52,9 +59,9 @@ async function run() {
             res.send(result);
         })
 
-        //Assignments: get data from database
-        app.get('/assignments', async (req, res) => {
-            const cursor = assignmentCollection.find();
+        //Assignments: get submission assignments data from database
+        app.get('/pendingAssignments', async (req, res) => {
+            const cursor = submissionCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
