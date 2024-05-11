@@ -36,10 +36,19 @@ async function run() {
 
 
         const assignmentCollection = client.db('assignmentDB').collection('assignments');
+        const submissionCollection = client.db('assignmentDB').collection('submittedAssignments');
+
         app.post('/addAssignment', async (req, res) => {
             const assignment = req.body;
             console.log(assignment);
             const result = await assignmentCollection.insertOne(assignment);
+            res.send(result);
+        })
+        //for assignment submission
+        app.post('/submittedAssignment', async (req, res) => {
+            const submission = req.body;
+            console.log(submission);
+            const result = await submissionCollection.insertOne(submission);
             res.send(result);
         })
 
@@ -57,13 +66,43 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/cardDetails/:id', async (req, res) => {
+        app.get('/cardDetails/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
-            const result = await assignmentCollection.deleteOne(query);
+            const result = await assignmentCollection.findOne(query);
+            res.send(result);
+        })
+        //find for update data
+        app.get('/update/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await assignmentCollection.findOne(query);
             res.send(result);
         })
 
+        //update section
+        app.put('/updateAssignment/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatedAssign = req.body;
+            const spot = {
+                $set: {
+                    title: updatedAssign.title,
+                    mark: updatedAssign.mark,
+                    photo: updatedAssign.photo,
+                    level: updatedAssign.level,
+                    time: updatedAssign.time,
+                    description: updatedAssign.description,
+                    userName: updatedAssign.authorName,
+                    userEmail: updatedAssign.authorEmail,
+                }
+            }
+            const result = await assignmentCollection.updateOne(filter, spot, options);
+            res.send(result);
+        })
+
+        //delete section
         app.delete('/assignments/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
