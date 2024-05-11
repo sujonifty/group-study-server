@@ -96,6 +96,9 @@ async function run() {
                     description: updatedAssign.description,
                     userName: updatedAssign.authorName,
                     userEmail: updatedAssign.authorEmail,
+                    editorName: updatedAssign.editorName,
+                    editorPhoto: updatedAssign.editorPhoto,
+                    editorEmail: updatedAssign.editorEmail,
                 }
             }
             const result = await assignmentCollection.updateOne(filter, spot, options);
