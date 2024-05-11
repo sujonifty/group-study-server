@@ -65,13 +65,22 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
-        //my submission: get data from database
-        app.get('/mySubmission/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { userEmail: email };
-            const result = await assignmentCollection.find(query).toArray();
-            res.send(result);
-        })
+//set feedback & mark 
+app.put('/giveMark/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    const options = { upsert: true };
+    const setMark = req.body;
+    const spot = {
+        $set: {
+            feedback: setMark.feedback,
+            obtainMark: setMark.obtainMark,
+            status: setMark.status
+        }
+    }
+    const result = await submissionCollection.updateOne(filter, spot, options);
+    res.send(result);
+})
 
         app.get('/cardDetails/:id', async (req, res) => {
             const id = req.params.id;
@@ -111,12 +120,25 @@ async function run() {
             const result = await assignmentCollection.updateOne(filter, spot, options);
             res.send(result);
         })
-
-        //delete section
+        //my submission: get data from database
+        app.get('/mySubmission/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = {examineeEmail: email };
+            const result = await submissionCollection.find(query).toArray();
+            res.send(result);
+        })
+        //delete my assignment section
         app.delete('/assignments/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await assignmentCollection.deleteOne(query);
+            res.send(result);
+        })
+        //delete my submission section
+        app.delete('/submission/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await submissionCollection.deleteOne(query);
             res.send(result);
         })
         // Send a ping to confirm a successful connection
