@@ -38,6 +38,8 @@ async function run() {
         const assignmentCollection = client.db('assignmentDB').collection('assignments');
         const submissionCollection = client.db('assignmentDB').collection('submittedAssignments');
 
+        // ************ collection: assignments *********** 
+
         app.post('/addAssignment', async (req, res) => {
             const assignment = req.body;
             console.log(assignment);
@@ -48,51 +50,6 @@ async function run() {
         app.get('/assignments', async (req, res) => {
             const cursor = assignmentCollection.find();
             const result = await cursor.toArray();
-            res.send(result);
-        })
-
-        //for assignment submission
-        app.post('/submittedAssignment', async (req, res) => {
-            const submission = req.body;
-            console.log(submission);
-            const result = await submissionCollection.insertOne(submission);
-            res.send(result);
-        })
-
-        //Assignments: get submission assignments data from database
-        app.get('/pendingAssignments', async (req, res) => {
-            const cursor = submissionCollection.find();
-            const result = await cursor.toArray();
-            res.send(result);
-        })
-//set feedback & mark 
-app.put('/giveMark/:id', async (req, res) => {
-    const id = req.params.id;
-    const filter = { _id: new ObjectId(id) };
-    const options = { upsert: true };
-    const setMark = req.body;
-    const spot = {
-        $set: {
-            feedback: setMark.feedback,
-            obtainMark: setMark.obtainMark,
-            status: setMark.status
-        }
-    }
-    const result = await submissionCollection.updateOne(filter, spot, options);
-    res.send(result);
-})
-
-        app.get('/cardDetails/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await assignmentCollection.findOne(query);
-            res.send(result);
-        })
-        //find for update data
-        app.get('/update/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await assignmentCollection.findOne(query);
             res.send(result);
         })
 
@@ -120,11 +77,13 @@ app.put('/giveMark/:id', async (req, res) => {
             const result = await assignmentCollection.updateOne(filter, spot, options);
             res.send(result);
         })
-        //my submission: get data from database
-        app.get('/mySubmission/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = {examineeEmail: email };
-            const result = await submissionCollection.find(query).toArray();
+
+
+        //find for update data
+        app.get('/update/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await assignmentCollection.findOne(query);
             res.send(result);
         })
         //delete my assignment section
@@ -134,6 +93,57 @@ app.put('/giveMark/:id', async (req, res) => {
             const result = await assignmentCollection.deleteOne(query);
             res.send(result);
         })
+
+
+        app.get('/cardDetails/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await assignmentCollection.findOne(query);
+            res.send(result);
+        })
+
+        // ************ collection: assignments *********** 
+
+        //for assignment submission
+        app.post('/submittedAssignment', async (req, res) => {
+            const submission = req.body;
+            console.log(submission);
+            const result = await submissionCollection.insertOne(submission);
+            res.send(result);
+        })
+
+        //Assignments: get submission assignments data from database
+        app.get('/pendingAssignments', async (req, res) => {
+            const cursor = submissionCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+        //set feedback & mark 
+        app.put('/giveMark/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const setMark = req.body;
+            const spot = {
+                $set: {
+                    feedback: setMark.feedback,
+                    obtainMark: setMark.obtainMark,
+                    status: setMark.status
+                }
+            }
+            const result = await submissionCollection.updateOne(filter, spot, options);
+            res.send(result);
+        })
+
+
+        //my submission: get data from database
+        app.get('/mySubmission/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { examineeEmail: email };
+            const result = await submissionCollection.find(query).toArray();
+            res.send(result);
+        })
+
         //delete my submission section
         app.delete('/submission/:id', async (req, res) => {
             const id = req.params.id;
@@ -141,6 +151,21 @@ app.put('/giveMark/:id', async (req, res) => {
             const result = await submissionCollection.deleteOne(query);
             res.send(result);
         })
+        //JWT authentication
+        app.post('/jwtAuth', async(req, res)=>{
+            const user =req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none'
+            })
+                .send({ success: true });
+        })
+
+        
+        
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
