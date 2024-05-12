@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const jwtAuth = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -17,6 +19,7 @@ app.use(
     })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 
 
@@ -31,12 +34,33 @@ const client = new MongoClient(uri, {
     }
 });
 
+// middlewares 
+const logger = (req, res, next) => {
+    console.log('log: info', req.method, req.url);
+    next();
+}
+
+const tokenVerify = (req, res, next) => {
+    const token = req?.cookies?.token;
+    // console.log('token in the middleware', token);
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access' });
+        }
+        req.user = decoded;
+        next();
+    })
+}
 async function run() {
     try {
 
 
         const assignmentCollection = client.db('assignmentDB').collection('assignments');
         const submissionCollection = client.db('assignmentDB').collection('submittedAssignments');
+
 
         // ************ collection: assignments *********** 
 
@@ -107,13 +131,16 @@ async function run() {
         //for assignment submission
         app.post('/submittedAssignment', async (req, res) => {
             const submission = req.body;
-            console.log(submission);
+            // console.log(submission);
             const result = await submissionCollection.insertOne(submission);
             res.send(result);
         })
 
         //Assignments: get submission assignments data from database
-        app.get('/pendingAssignments', async (req, res) => {
+        app.get('/pendingAssignments',logger,tokenVerify, async (req, res) => {
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
             const cursor = submissionCollection.find();
             const result = await cursor.toArray();
             res.send(result);
@@ -137,7 +164,11 @@ async function run() {
 
 
         //my submission: get data from database
-        app.get('/mySubmission/:email', async (req, res) => {
+        app.get('/mySubmission/:email', logger, tokenVerify,async (req, res) => {
+            // console.log(req.query.email);
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
             const email = req.params.email;
             const query = { examineeEmail: email };
             const result = await submissionCollection.find(query).toArray();
@@ -154,7 +185,7 @@ async function run() {
         //JWT authentication
         app.post('/jwtAuth', async(req, res)=>{
             const user =req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
+            const token = jwtAuth.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: true,
@@ -163,7 +194,12 @@ async function run() {
                 .send({ success: true });
         })
 
-        
+        //clear token
+        app.post('/remove', async (req, res) => {
+            const user = req.body;
+            console.log('log out', user);
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+        })
         
 
         // Send a ping to confirm a successful connection
