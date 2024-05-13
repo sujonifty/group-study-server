@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const jwt= require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -13,7 +13,8 @@ app.use(
     cors({
         origin: [
             "http://localhost:5173",
-            "http://localhost:5174",
+            "https://edunest-20dc6.web.app",
+            "https://edunest-20dc6.web.app.firebaseapp.com",
         ],
         credentials: true,
     })
@@ -72,7 +73,9 @@ async function run() {
         })
         //Assignments: get assignments data from database
         app.get('/assignments', async (req, res) => {
-            const cursor = assignmentCollection.find();
+            const page =parseInt(req.query.page)
+            const size =parseInt(req.query.size)
+            const cursor = assignmentCollection.find().skip(page*size).limit(size);
             const result = await cursor.toArray();
             res.send(result);
         })
@@ -161,12 +164,13 @@ async function run() {
 
 
         //my submission: get data from database
-        app.get('/mySubmission/:email',async (req, res) => {
-            // console.log(req.query.email);
-            // if (req.user.email !== req.query.email) {
-            //     return res.status(403).send({ message: 'Forbidden access' });
-            // }
-            const email = req.params.email;
+        app.get('/mySubmission',tokenVerify, async (req, res) => {
+            // console.log(req.user,req.query)
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+
+            const email = req.query.email;
             const query = { examineeEmail: email };
             const result = await submissionCollection.find(query).toArray();
             res.send(result);
@@ -180,25 +184,29 @@ async function run() {
             res.send(result);
         })
         //JWT authentication
-        app.post('/jwtAuth', async(req, res)=>{
-            const user =req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
+        app.post('/jwtAuth', async (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
             res.cookie('token', token, {
                 httpOnly: true,
-                secure: true,
-                sameSite: 'none'
+                secure: false,
+                sameSite: 'strict'
             })
                 .send({ success: true });
         })
 
-        //clear token
+        // clear token
         app.post('/remove', async (req, res) => {
             const user = req.body;
             console.log('log out', user);
             res.clearCookie('token', { maxAge: 0 }).send({ success: true })
         })
-        
 
+        // ************Pagination*************
+        app.get('/assignmentNumber', async (req, res) => {
+            const count = await assignmentCollection.estimatedDocumentCount();
+            res.send({ count });
+        })
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
