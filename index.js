@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const jwtAuth = require('jsonwebtoken');
+const jwt= require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express();
@@ -137,10 +137,7 @@ async function run() {
         })
 
         //Assignments: get submission assignments data from database
-        app.get('/pendingAssignments',logger,tokenVerify, async (req, res) => {
-            if (req.user.email !== req.query.email) {
-                return res.status(403).send({ message: 'Forbidden access' });
-            }
+        app.get('/pendingAssignments', async (req, res) => {
             const cursor = submissionCollection.find();
             const result = await cursor.toArray();
             res.send(result);
@@ -164,11 +161,11 @@ async function run() {
 
 
         //my submission: get data from database
-        app.get('/mySubmission/:email', logger, tokenVerify,async (req, res) => {
+        app.get('/mySubmission/:email',async (req, res) => {
             // console.log(req.query.email);
-            if (req.user.email !== req.query.email) {
-                return res.status(403).send({ message: 'Forbidden access' });
-            }
+            // if (req.user.email !== req.query.email) {
+            //     return res.status(403).send({ message: 'Forbidden access' });
+            // }
             const email = req.params.email;
             const query = { examineeEmail: email };
             const result = await submissionCollection.find(query).toArray();
@@ -185,7 +182,7 @@ async function run() {
         //JWT authentication
         app.post('/jwtAuth', async(req, res)=>{
             const user =req.body;
-            const token = jwtAuth.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '120h' })
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: true,
